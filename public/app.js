@@ -325,11 +325,11 @@ function renderDay(el, date) {
     <div class="card section">
       <div class="row spread"><h2>Expenses</h2><button class="btn out-btn" id="add-exp">+ Add expense</button></div>
       ${exps.length ? `<div class="table-wrap"><table>
-        <thead><tr><th class="num">Amount</th><th>Expense remarks</th><th>Driver</th><th>Type</th><th>Paid by</th><th class="hide-sm">Entered by</th></tr></thead>
+        <thead><tr><th class="num">Amount</th><th>Expense remarks</th><th>Driver</th><th>Paid by</th><th class="hide-sm">Entered by</th></tr></thead>
         <tbody>${exps.map(e => `<tr class="click" data-exp="${e.id}">
           <td class="num"><b>${money(e.amount)}</b></td><td>${esc(e.remarks)}</td><td>${esc(e.driver)}</td>
-          <td><span class="chip">${esc(e.category)}</span></td><td>${e.paidBy === 'driver' ? '<span class="chip ongoing">driver, from cash</span>' : '<span class="muted small">office</span>'}</td><td class="hide-sm muted small">${esc(e.createdBy)}${e.updatedAt ? ' · edited' : ''}</td></tr>`).join('')}</tbody>
-        <tfoot><tr><td class="num">${money(s.expense + opening)}</td><td colspan="5"></td></tr></tfoot>
+          <td>${e.paidBy === 'driver' ? '<span class="chip ongoing">driver, from cash</span>' : '<span class="muted small">office</span>'}</td><td class="hide-sm muted small">${esc(e.createdBy)}${e.updatedAt ? ' · edited' : ''}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td class="num">${money(s.expense + opening)}</td><td colspan="4"></td></tr></tfoot>
       </table></div>` : '<div class="empty">No expenses entered for this day yet.</div>'}
     </div>
     <div class="card section">
@@ -433,7 +433,9 @@ function tripForm(t) {
     <div class="form-grid">
       <label class="full">Driver name (tick two if they shared the trip)
         <div class="row" style="gap:6px">${activeDrivers.map(d => `<label class="chip" style="cursor:pointer">
-          <input type="checkbox" data-driver value="${esc(d.name)}" ${sel.includes(d.name) ? 'checked' : ''}>${esc(d.name)}</label>`).join('')}</div></label>
+          <input type="checkbox" data-driver value="${esc(d.name)}" ${sel.includes(d.name) ? 'checked' : ''}>${esc(d.name)}</label>`).join('')}
+          <button type="button" class="chip new-drv-toggle" style="cursor:pointer">+ New driver</button></div>
+        ${newDriverRow()}</label>
       <label>No of pax<input name="pax" value="${esc(t.pax)}" placeholder="e.g. 4 or 6+1"></label>
       <label>Place of visit<input name="place" list="places" value="${esc(t.place)}" placeholder="e.g. 3+m, pkg" required>
         <datalist id="places">${S.data.places.filter(p => p.active).map(p => `<option value="${esc(p.code)}">${esc(p.name || '')}</option>`).join('')}</datalist></label>
@@ -458,16 +460,54 @@ function tripForm(t) {
   const sync = () => { col.disabled = st.value !== 'done'; col.required = st.value === 'done';
     $('#f-recv-wrap').style.visibility = form.collectedBy.value === 'driver' && (t.received || isOwner()) ? 'visible' : 'hidden'; };
   st.onchange = sync; form.querySelectorAll('[name=collectedBy]').forEach(r => r.onchange = sync); sync();
+  $('.new-drv-toggle', form).onclick = () => { $('.new-drv', form).classList.remove('hidden'); $('.new-drv input', form).focus(); };
+  wireNewDriver(form, name => {
+    $('.new-drv-toggle', form).insertAdjacentHTML('beforebegin', `<label class="chip" style="cursor:pointer">
+      <input type="checkbox" data-driver value="${esc(name)}" checked>${esc(name)}</label>`);
+  });
 }
-const CATEGORIES = ['Fuel', 'Garage & repair', 'Tyre & tube', 'Accessories', 'Token & tax', 'Driver payment', 'Opening balance', 'Other'];
+// Anyone can add a driver who isn't in the list yet (name only; the owner fills in the car later).
+function driverOptions(current) {
+  return S.data.drivers.filter(d => d.active || d.name === current).map(d => opt(d.name, current)).join('') +
+    '<option value="__new">+ Add new driver…</option>';
+}
+const newDriverRow = () => `<span class="row new-drv hidden" style="gap:6px;margin-top:6px">
+  <input placeholder="New driver's name" maxlength="60" style="flex:1"><button type="button" class="btn sm">Add driver</button></span>`;
+function wireNewDriver(form, onAdded, select) {
+  const row = $('.new-drv', form), input = $('input', row);
+  if (select) select.addEventListener('change', () => {
+    if (select.value !== '__new') return;
+    row.classList.remove('hidden'); input.focus();
+    select.value = select.dataset.prev || '';
+  });
+  if (select) select.addEventListener('focus', () => { select.dataset.prev = select.value; });
+  const add = async () => {
+    const name = input.value.trim(); if (!name) return input.focus();
+    // Already on the list? Just pick that driver instead of adding a second one.
+    const known = S.data.drivers.find(d => d.active && d.name.toLowerCase() === name.toLowerCase());
+    if (known) {
+      if (select) { select.value = known.name; select.dispatchEvent(new Event('input')); }
+      else form.querySelectorAll('[data-driver]').forEach(c => { if (c.value === known.name) c.checked = true; });
+      input.value = ''; row.classList.add('hidden'); return;
+    }
+    try {
+      const d = await api('drivers', { method: 'POST', body: { name } });
+      S.data.drivers.push(d);
+      if (select) { select.querySelector('option[value="__new"]').insertAdjacentHTML('beforebegin', opt(d.name, d.name)); select.value = d.name; select.dispatchEvent(new Event('input')); }
+      onAdded?.(d.name);
+      input.value = ''; row.classList.add('hidden'); toast(`${d.name} added to the drivers`);
+    } catch (err) { $('.err', form).textContent = err.message; }
+  };
+  $('button', row).onclick = add;
+  input.onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); add(); } };
+}
 function expenseForm(e) {
   const isEdit = !!e.id;
   openModal(`<h2>${isEdit ? 'Edit expense' : 'Add expense'} · ${fmtDate(e.date)}</h2>
     <div class="form-grid">
       <label>Expense amount (${cur()})<input name="amount" type="number" inputmode="numeric" min="1" step="1" value="${e.amount ?? ''}" required></label>
       <label>Expense remarks<input name="remarks" id="f-rem" value="${esc(e.remarks)}" placeholder="e.g. lakpa oil"></label>
-      <label>Driver / car<select name="driver" id="f-drv">${opt('', e.driver, '- office / none -')}${S.data.drivers.map(d => opt(d.name, e.driver, d.name + (d.vehicleNo ? ' · ' + d.vehicleNo : ''))).join('')}</select></label>
-      <label>Type<select name="category" id="f-cat">${CATEGORIES.map(c => opt(c, e.category)).join('')}</select></label>
+      <label class="full">Driver<select name="driver" id="f-drv">${opt('', e.driver, '- office / none -')}${driverOptions(e.driver)}</select>${newDriverRow()}</label>
       <label class="full">Who paid?
         <div class="seg"><label><input type="radio" name="paidBy" value="office" ${e.paidBy !== 'driver' ? 'checked' : ''}>Office</label>
         <label><input type="radio" name="paidBy" value="driver" ${e.paidBy === 'driver' ? 'checked' : ''}>Driver, from cash he collected</label></div></label>
@@ -477,16 +517,14 @@ function expenseForm(e) {
     await api(isEdit ? 'expenses/' + e.id : 'expenses', { method: isEdit ? 'PUT' : 'POST', body: obj });
     toast(isEdit ? 'Expense updated' : 'Expense added');
   }, () => api('expenses/' + e.id, { method: 'DELETE' }));
-  // Typing "lakpa oil" fills in the driver and type, the way the sheet's remarks are written.
+  // Typing "lakpa oil" fills in the driver, the way the sheet's remarks are written. The type
+  // (fuel, garage...) for the dashboard is worked out from the remarks when it's saved.
   if (!isEdit) $('#f-rem').oninput = ev => {
     const words = ev.target.value.toLowerCase().split(/[^a-z]+/);
     const d = S.data.drivers.find(d => words.includes(d.name.toLowerCase()) || (d.aliases || []).some(a => words.includes(a.toLowerCase())));
     if (d) $('#f-drv').value = d.name;
-    const v = ev.target.value;
-    const c = /oil|diesel|petrol/i.test(v) ? 'Fuel' : /garage|repair|align|aligment|batt/i.test(v) ? 'Garage & repair' : /tyre|tire|tube/i.test(v) ? 'Tyre & tube'
-      : /\bmat\b|cover/i.test(v) ? 'Accessories' : /token|tax|permit|toll/i.test(v) ? 'Token & tax' : /opening/i.test(v) ? 'Opening balance' : null;
-    if (c) $('#f-cat').value = c;
   };
+  wireNewDriver($('#modal-form'), null, $('#f-drv'));
 }
 
 function handoverForm(h) {
@@ -496,7 +534,7 @@ function handoverForm(h) {
   openModal(`<h2>${isEdit ? 'Edit cash handed in' : 'Driver handed in cash'} · ${fmtDate(h.date)}</h2>
     <div class="form-grid">
       <label>Driver<select name="driver" id="f-hd" required>${opt('', h.driver, '- pick -')}${S.data.drivers.filter(d => d.active || d.name === h.driver)
-        .map(d => opt(d.name, h.driver, `${d.name}${holding(d.name) > 0.5 ? ' · holding ' + money(holding(d.name)) : ''}`)).join('')}</select></label>
+        .map(d => opt(d.name, h.driver, `${d.name}${holding(d.name) > 0.5 ? ' · holding ' + money(holding(d.name)) : ''}`)).join('')}<option value="__new">+ Add new driver…</option></select>${newDriverRow()}</label>
       <label>Amount handed in (${cur()})<input name="amount" id="f-ha" type="number" inputmode="numeric" min="1" step="1" value="${h.amount ?? ''}" required></label>
       <label>How<select name="method">${['Cash', 'UPI', 'Bank transfer'].map(m => opt(m, h.method || 'Cash')).join('')}</select></label>
       <label>Date<input name="date" type="date" value="${h.date}" required></label>
@@ -512,6 +550,7 @@ function handoverForm(h) {
     $('#f-hleft').textContent = `${d} is holding ${money(now)}. After this: ${after >= 0 ? money(after) + ' still with him' : 'office owes him ' + money(-after)}.`; };
   $('#f-hd').oninput = () => { if (!isEdit && !$('#f-ha').value) $('#f-ha').value = Math.max(0, Math.round(holding($('#f-hd').value))) || ''; show(); };
   $('#f-ha').oninput = show; show();
+  wireNewDriver($('#modal-form'), null, $('#f-hd'));
 }
 
 // ---------- drivers & places (owner) ----------
