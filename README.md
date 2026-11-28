@@ -41,34 +41,34 @@ node scripts/seed.js --reset --empty  # start with an empty tracker (drivers and
 PORT=8080 DATA_DIR=/var/tracker node server.js   # different port / data folder
 ```
 
-## Online (Vercel + Supabase)
+## Online (Vercel + a Postgres database)
 
 The same app runs online so Mehboob can use it from a phone and the owner can check from anywhere.
-Vercel serves the pages and runs `api/index.js` for the data; the data itself is kept in a Postgres
-database (Supabase), in its own `tracker` section so it stays apart from anything else there.
+Vercel serves the pages and runs `api/index.js` for the data. The data is kept in a Postgres
+database, in its own `tracker` section. The easiest database is a free **Neon** one added from
+inside Vercel, which fills in the database address by itself. Any Postgres works (Supabase too).
 
 One-time setup:
 
-1. **Copy the database address from Supabase.** Open the project, click **Connect**, pick
-   **Transaction pooler**, and copy the URI. It looks like
-   `postgresql://postgres.abcd:[YOUR-PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:6543/postgres`.
-   Put the database password in place of `[YOUR-PASSWORD]`. If you don't know it, reset it under
-   **Project Settings → Database** (use letters and numbers only). Use the pooler address, not the
-   direct one: Vercel can't reach the direct one.
-2. **Add the project in Vercel.** **Add New → Project**, import this repository, leave the settings as
-   they are, and open **Environment Variables** before you click Deploy:
+1. **Add a database.** In the Vercel project, open **Storage → Create Database**, pick **Neon**
+   (Serverless Postgres), choose the free plan and the **Mumbai (ap-south-1)** region, and connect it
+   to this project. Vercel adds `DATABASE_URL` to the project's settings for you.
+2. **Set the first PINs.** Under **Settings → Environment Variables**, add:
 
    | Name | Value |
    |---|---|
-   | `DATABASE_URL` | the address from step 1 |
    | `OWNER_PIN` | the owner's PIN (4 to 8 digits) |
    | `STAFF_PIN` | Mehboob's PIN |
 
-   `OWNER_PIN` and `STAFF_PIN` are only used the first time, when the tracker creates its tables, so
-   the demo PINs never work online. After that, change PINs and add staff logins in the app under
+   They are only used the first time, when the tracker creates its tables, so the demo PINs never
+   work online. After that, change PINs and add staff logins in the app under
    **Import / export → Logins and PINs**.
-3. **Deploy.** The first visit creates the tables and the demo entries. Remove the demo entries and
-   import the Excel from **Import / export** when you're ready. Set `NO_SEED=1` as well to start empty.
+3. **Redeploy** (Deployments → the latest one → Redeploy). The first visit creates the tables and the
+   demo entries. Remove the demo entries and import the Excel from **Import / export** when you're
+   ready. Set `NO_SEED=1` as well to start empty.
+
+With another Postgres instead of Neon, put its address in `DATABASE_URL` yourself (for Supabase, use
+the **Transaction pooler** address from **Connect**, because Vercel can't reach the direct one).
 
 Online, 10 wrong PINs from one place lock that place out for 15 minutes, and the login page shows the
 demo PINs only while they still work. To bring data from a computer copy online, export the CSVs there

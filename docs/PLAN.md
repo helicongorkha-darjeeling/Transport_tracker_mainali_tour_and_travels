@@ -81,8 +81,8 @@ Opening balance is kept on the day sheet but left out of expense totals and prof
 ## Next steps
 
 1. **Try it** with the real Excel (remove demo data, import). Mehboob uses it next to Excel for a week.
-2. **Put it online**: done with Vercel (pages and API) and Supabase Postgres (data), see the README.
-   Daily backup: export the CSVs, or use Supabase's backups.
+2. **Put it online**: done with Vercel (pages and API) and a Postgres database such as Neon (data), see the README.
+   Daily backup: export the CSVs (Neon also keeps a short history of the database).
 3. **Proper logins**: each person now has their own PIN, which the owner can change, and the owner can
    add staff logins. Later: passwords instead of PINs if the app is used more widely.
 4. **Real database**: the online version uses Postgres. Saves are done one at a time, so two people
