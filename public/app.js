@@ -32,7 +32,14 @@ function toast(msg) {
 async function reload() { S.data = await api('data'); }
 
 // ---------- login ----------
-function showLogin() { $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); $('#pin').focus(); }
+function showLogin() {
+  $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); $('#pin').focus();
+  // Show the demo PINs only while they still work, and learn the PIN length for the keypad.
+  fetch('/api/hint').then(r => r.json()).then(h => {
+    $('#demo-hint').classList.toggle('hidden', !h.demoPins);
+    window.PIN_LENGTH = h.pinLength || 0;
+  }).catch(() => {});
+}
 $('#login-form').addEventListener('submit', async e => {
   e.preventDefault();
   try {
@@ -568,7 +575,18 @@ function renderActivity(el, filter = '') {
 // ---------- import / export (owner) ----------
 function renderData(el) {
   const demo = [...S.data.trips, ...S.data.expenses, ...(S.data.handovers || [])].filter(x => x.source === 'demo').length;
+  const users = S.data.users || [];
   el.innerHTML = `<div class="pagehead"><div><p class="eyebrow">Your data</p><h1>Import / export</h1></div></div>
+    <div class="card" style="margin-bottom:16px" id="logins">
+      <div class="row spread"><div><h2>Logins and PINs</h2>
+        ${S.user.demoPins ? `<p class="out small"><b>The demo PINs 1234 and 1111 still work.</b> Anyone who finds this page could log in, so give each person a new PIN now.</p>`
+          : '<p class="muted small">Each person logs in with their own PIN. Changing a PIN logs that person out on every phone and computer.</p>'}</div>
+        <button class="btn sm" id="add-login">Add staff login</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Name</th><th>Role</th><th></th></tr></thead>
+        <tbody>${users.map(u => `<tr><td>${esc(u.name)}</td><td>${u.role === 'owner' ? 'Owner' : 'Office staff'}</td>
+          <td class="num"><button class="btn sm" data-pin="${esc(u.id)}">Change PIN</button>
+          ${u.role !== 'owner' ? `<button class="btn sm ghost" data-rm="${esc(u.id)}">Remove</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+    </div>
     ${demo ? `<div class="card" style="margin-bottom:16px"><div class="row spread"><div><b>The tracker has ${demo} made-up demo entries.</b>
       <div class="muted small">Remove them before you import your real Excel so the totals are only yours. Drivers and places stay.</div></div>
       <button class="btn danger" id="clear-demo">Remove demo entries</button></div></div>` : ''}
@@ -586,6 +604,12 @@ function renderData(el) {
         <div class="row"><select id="csv-col" style="width:auto">${['trips', 'expenses', 'handovers', 'drivers', 'places'].map(c => opt(c, 'trips')).join('')}</select><input type="file" id="csv" accept=".csv" style="width:auto"></div>
       </div>
     </div>`;
+  el.querySelectorAll('[data-pin]').forEach(b => b.onclick = () => loginForm(users.find(u => u.id === b.dataset.pin)));
+  $('#add-login').onclick = () => loginForm(null);
+  el.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => {
+    if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = 'Tap again to remove'; return; }
+    try { await api('users/' + b.dataset.rm, { method: 'DELETE' }); await reload(); toast('Login removed'); route(); } catch (err) { toast(err.message); }
+  });
   const cd = $('#clear-demo');
   if (cd) cd.onclick = async () => {
     if (!cd.dataset.sure) { cd.dataset.sure = 1; cd.textContent = 'Tap again to remove'; return; }
@@ -622,6 +646,20 @@ function renderData(el) {
       };
     } catch (err) { box.innerHTML = `<p class="err">${esc(err.message)}</p>`; }
   };
+}
+// Change a PIN (and name), or add a staff login when u is null.
+function loginForm(u) {
+  openModal(`<h2>${u ? 'Change PIN for ' + esc(u.name) : 'New staff login'}</h2><div class="form-grid">
+      <label>Name<input name="name" value="${esc(u?.name || '')}" required maxlength="60"></label>
+      <label>New PIN (4 to 8 digits)<input name="pin" inputmode="numeric" pattern="\\d{4,8}" autocomplete="new-password" ${u ? 'placeholder="Empty keeps the old PIN"' : 'required'}></label>
+      <p class="full muted small">${u ? 'Tell ' + esc(u.name) + ' the new PIN in person. ' : 'Staff can fill in the day sheet and driver cash, but cannot delete or see the dashboard. '}When everyone's PIN has the same number of digits, the keypad logs in as soon as the last digit is tapped.</p>
+    </div>${actions(false)}`,
+    async obj => {
+      const r = await api(u ? 'users/' + u.id : 'users', { method: u ? 'PUT' : 'POST', body: obj });
+      if (r.demoPins !== undefined) S.user.demoPins = r.demoPins;
+      if (u && u.id === S.user.id) { S.user.name = r.name; $('#who').textContent = r.name; }
+      toast(u ? 'Saved' : 'Login added');
+    });
 }
 function alertBox(lines) { $('#xlsx-preview').innerHTML = `<p class="err">${lines.slice(0, 20).map(esc).join('<br>')}</p>`; }
 function loadSheetJs() {

@@ -9,5 +9,10 @@
     "seed": "node scripts/seed.js --reset",
     "seed:empty": "node scripts/seed.js --reset --empty"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
 }
