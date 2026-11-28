@@ -58,7 +58,7 @@ function buildSeed(db) {
       trips.push({
         id: 'T' + pad(trips.length + 1), date, drivers, pax: kids ? `${adults}+${kids}` : String(adults), place: code,
         collection: status === 'done' ? round(rate * (0.85 + r() * 0.4), 100) : null, status, collectedBy, received: false,
-        payMode: status === 'done' ? (r() < 0.55 ? 'T' : 'Cash') : '', remarks: '', source: 'demo',
+        payMode: status === 'done' ? (r() < 0.55 ? 'UPI' : 'Cash') : '', remarks: '', source: 'demo',
         createdBy: 'Mehboob', createdAt: stamp(date, 9 + Math.floor(r() * 10)), updatedAt: '',
       });
       const t = trips[trips.length - 1];

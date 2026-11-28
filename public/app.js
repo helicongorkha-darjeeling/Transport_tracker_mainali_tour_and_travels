@@ -444,7 +444,7 @@ function tripForm(t) {
       <label class="full">Who took the money?
         <div class="seg"><label><input type="radio" name="collectedBy" value="driver" ${t.collectedBy !== 'office' ? 'checked' : ''}>Driver (hands it in later)</label>
         <label><input type="radio" name="collectedBy" value="office" ${t.collectedBy === 'office' ? 'checked' : ''}>Paid to office directly</label></div></label>
-      <label>Paid by<select name="payMode">${opt('', t.payMode, '-')}${opt('Cash', t.payMode)}${opt('T', t.payMode, 'T (online)')}</select></label>
+      <label>Paid by<select name="payMode">${opt('', t.payMode, '-')}${opt('Cash', t.payMode)}${opt('UPI', t.payMode)}</select></label>
       <label style="align-self:end" id="f-recv-wrap" title="Use this only for old entries. Normally record a handover instead."><span class="row" style="gap:6px;color:var(--text)"><input type="checkbox" name="received" ${t.received ? 'checked' : ''} style="width:auto"> Already settled (old Excel tick)</span></label>
       <label class="full">Remarks<input name="remarks" value="${esc(t.remarks)}" placeholder="e.g. avishek 1500 paid / norsang 1500 cash"></label>
     </div>${actions(isEdit)}`,
@@ -736,7 +736,7 @@ function parseWorkbook(wb) {
         const txt = String(colRaw ?? '').trim().toLowerCase();
         const status = /canc/.test(txt) ? 'cancelled' : (txt === 'no' || (!txt && !num)) ? 'no charge' : 'done';
         const rem = String(v(c.remarks) ?? '').trim();
-        const payMode = /^t$/i.test(rem) ? 'T' : /^cash$/i.test(rem) ? 'Cash' : '';
+        const payMode = /^(t|upi|online)$/i.test(rem) ? 'UPI' : /^cash$/i.test(rem) ? 'Cash' : '';
         trips.push({ drivers: String(drv || '').split(/\s*,\s*/).filter(Boolean).join(', ') || '(not entered)', pax: String(v(c.pax) ?? ''), place: String(v(c.place) ?? '').trim(),
           collection: status === 'done' ? num : null, status, received: v(c.received) === true || String(v(c.received)).toUpperCase() === 'TRUE',
           payMode, remarks: payMode ? '' : rem });
