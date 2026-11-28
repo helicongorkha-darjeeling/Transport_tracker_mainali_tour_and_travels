@@ -81,13 +81,12 @@ Opening balance is kept on the day sheet but left out of expense totals and prof
 ## Next steps
 
 1. **Try it** with the real Excel (remove demo data, import). Mehboob uses it next to Excel for a week.
-2. **Put it online** so Mehboob can use it from a phone and the owner can check from anywhere.
-   Simplest: a small server (Render, Railway or a ₹400-600/month VPS) running `node server.js` with a
-   persistent disk for `data/`, plus a domain and HTTPS. Daily backup of `data/db.json`.
-3. **Proper logins**: one account per person with a password instead of shared PINs, and a way to
-   reset them. Add more staff accounts if others start entering.
-4. **Move to a real database** (SQLite on the server, or hosted Postgres such as Supabase) once more than
-   a couple of people enter data at the same time, or when we add the items below.
+2. **Put it online**: done with Vercel (pages and API) and Supabase Postgres (data), see the README.
+   Daily backup: export the CSVs, or use Supabase's backups.
+3. **Proper logins**: each person now has their own PIN, which the owner can change, and the owner can
+   add staff logins. Later: passwords instead of PINs if the app is used more widely.
+4. **Real database**: the online version uses Postgres. Saves are done one at a time, so two people
+   saving at once can't overwrite each other.
 5. **Later, if useful**: daily WhatsApp/email summary to the owner (collection, expenses, cash pending),
    lock a day once the owner has checked it, km readings and fuel efficiency per car, driver pay
    and advances, monthly PDF report, bookings for future dates.
