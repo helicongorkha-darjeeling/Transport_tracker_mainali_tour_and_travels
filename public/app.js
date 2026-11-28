@@ -63,7 +63,7 @@ async function start() {
 
 // ---------- routing ----------
 const ROUTES = {
-  dashboard: { label: 'Dashboard', owner: true, render: renderDashboard },
+  dashboard: { label: 'Dashboard', render: renderDashboard }, // staff see it too (read only)
   day: { label: 'Day sheet', render: renderDay },
   cash: { label: 'Driver cash', render: renderCash },
   drivers: { label: 'Drivers & cars', owner: true, render: renderDrivers },
@@ -206,7 +206,7 @@ function renderDashboard(el, period = 'month') {
 
   el.innerHTML = `
     <div class="pagehead">
-      <div><p class="eyebrow">Owner overview</p><h1>Dashboard</h1><div class="muted">${from ? `${fmtDate(from)} to ${fmtDate(to)}` : 'All time'}</div></div>
+      <div><p class="eyebrow">${isOwner() ? 'Owner overview' : 'Overview'}</p><h1>Dashboard</h1><div class="muted">${from ? `${fmtDate(from)} to ${fmtDate(to)}` : 'All time'}</div></div>
       <select id="period" style="width:auto">${Object.entries(PERIODS).map(([k, v]) => `<option value="${k}" ${k === period ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
     </div>
     <div class="grid kpis">
@@ -253,11 +253,11 @@ function renderDashboard(el, period = 'month') {
       </div>
     </div>
 
-    <div class="card section">
+    ${isOwner() ? `<div class="card section">
       <div class="row spread"><h2>Latest updates</h2><a href="#/activity">Full activity log →</a></div>
       ${lateEdits.length ? `<p class="small out">⚠ ${lateEdits.length} change${lateEdits.length > 1 ? 's were' : ' was'} made to an earlier day's sheet in this period. <a href="#/activity/late">Review them</a></p>` : ''}
       ${feed(S.data.activity.slice(0, 12))}
-    </div>`;
+    </div>` : ''}`;
   $('#period').onchange = e => { location.hash = '#/dashboard/' + e.target.value; };
 }
 function kpi(label, value, sub, cls = '') {

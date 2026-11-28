@@ -21,7 +21,7 @@ It opens http://localhost:3000. Log in:
 | Who | PIN | Sees |
 |---|---|---|
 | Owner | `1234` | Dashboard, day sheet, driver cash, drivers & cars, activity log, import/export |
-| Mehboob (staff) | `1111` | Day sheet and driver cash (records handovers) |
+| Mehboob (staff) | `1111` | Dashboard (to look at), day sheet and driver cash (records handovers) |
 
 Change the PINs before real use: log in as owner, **Import / export → Logins and PINs**.
 
