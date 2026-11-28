@@ -52,7 +52,8 @@ One-time setup:
 
 1. **Add a database.** In the Vercel project, open **Storage → Create Database**, pick **Neon**
    (Serverless Postgres), choose the free plan and the **Mumbai (ap-south-1)** region, and connect it
-   to this project. Vercel adds `DATABASE_URL` to the project's settings for you.
+   to this project. Vercel adds the database address to the project's settings for you (the tracker
+   finds it whether it's called `DATABASE_URL`, `POSTGRES_URL` or `STORAGE_URL`, with or without a prefix).
 2. **Set the first PINs.** Under **Settings → Environment Variables**, add:
 
    | Name | Value |
