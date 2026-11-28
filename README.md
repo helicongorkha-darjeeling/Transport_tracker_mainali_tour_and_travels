@@ -61,9 +61,9 @@ One-time setup:
    | `OWNER_PIN` | the owner's PIN (4 to 8 digits) |
    | `STAFF_PIN` | Mehboob's PIN |
 
-   They are only used the first time, when the tracker creates its tables, so the demo PINs never
-   work online. After that, change PINs and add staff logins in the app under
-   **Import / export → Logins and PINs**.
+   They replace the demo PINs (also on a tracker that was already running with them), so the demo
+   PINs stop working online. A PIN changed in the app is never overwritten. Change PINs and add staff
+   logins in the app under **Import / export → Logins and PINs**.
 3. **Redeploy** (Deployments → the latest one → Redeploy). The first visit creates the tables and the
    demo entries. Remove the demo entries and import the Excel from **Import / export** when you're
    ready. Set `NO_SEED=1` as well to start empty.
