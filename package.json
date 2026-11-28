@@ -1,0 +1,13 @@
+{
+  "name": "transport-tracker-mainali",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Daily trip, collection and expense tracker for Mainali Tour & Travels",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node scripts/seed.js --reset",
+    "seed:empty": "node scripts/seed.js --reset --empty"
+  },
+  "engines": { "node": ">=18" }
+}
